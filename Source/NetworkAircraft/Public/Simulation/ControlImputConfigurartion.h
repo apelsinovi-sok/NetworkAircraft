@@ -3,14 +3,13 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Vehicle/FVehicleMovementTraits.h"
 
 /**
  * 
  */
 
 #include "ControlImputConfigurartion.generated.h"
-
-
 
 USTRUCT(BlueprintType)
 struct NETWORKAIRCRAFT_API FInputRateConfiguration
@@ -29,7 +28,13 @@ public:
 	UPROPERTY(EditAnywhere, Category = VehicleInputRate)
 	double FallRate = 5.f;
 	
-	double GetInterpilatedValue(double DeltaTime, double CurrentValue, double Target);
+	double GetInterpilatedValue(double DeltaTime, double RawValue);
+	
+	double GetYawValue(double RawInput, double DeltaSeconds);
+	
+	FVehicleSimulationState State;
+private:
+	double CurrentYawThrottleValue = 0.f;
 };
 
 USTRUCT(BlueprintType)
@@ -57,8 +62,13 @@ public:
 	
 	UPROPERTY(EditAnywhere, Category = VehicleInputRate)
 	double InterpFall = 1.f;
+
+	UPROPERTY(EditAnywhere, Category = VehicleInputRate)
+	float TargetAltitude = 5000.f;
 	
-	double GetThrottleValue(double value, double deltaSeconds);
+	float ErrorSum = 0.f;
+	
+	double GetThrottleValue(double value, double deltaSeconds, FVehicleSimulationState State);
 	
 	double GetCurrentThrottleValue() const { return CurrentThrottleValue; }
 	
@@ -82,7 +92,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	FThrottleControlConfiguration ThrottleControl;
 
-	double GetInterpilatedValue(double deltaTime, double CurrentValue, double RawValue);
+	FVehicleSimulationState State;
+
+	double GetInterpilatedValue(double deltaTime, double RawValue);
 };
 
 USTRUCT(BlueprintType)

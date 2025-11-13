@@ -41,6 +41,24 @@ public:
 	UPROPERTY()
 	double RollInput;
 
+	UPROPERTY()
+	double RawThrottleInputX;
+	
+	UPROPERTY()
+	double RawThrottleInputY;
+	
+	UPROPERTY()
+	double RawThrottleInputZ;
+
+	UPROPERTY()
+	double RawPitchInput;
+	
+	UPROPERTY()
+	double RawRollInput;
+	
+	UPROPERTY()
+	double RawYawInput;
+	
 	void ResetInputs();
 };
 

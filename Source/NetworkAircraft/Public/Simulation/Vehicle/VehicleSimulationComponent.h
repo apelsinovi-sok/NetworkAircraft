@@ -111,7 +111,7 @@ public:
 private:
 	double RawThrottleInputX = 0.f;
 	double RawThrottleInputY = 0.f;
-	double RawThrottleInputZ = 0.f;
+	double RawThrottleInputZ = 0.7f;
 	double RawPitchInput = 0.f;
 	double RawRollInput = 0.f;
 	double RawYawInput = 0.f;

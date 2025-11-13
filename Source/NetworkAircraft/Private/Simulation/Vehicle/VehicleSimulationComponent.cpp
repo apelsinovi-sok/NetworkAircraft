@@ -81,38 +81,60 @@ void UVehicleSimulationComponent::UpdateStateGT(double deltaTime)
 {
 	SimulationState.UpdateStateGT(GetBodyInstance(), GetGravityZ(), deltaTime);
 	
-	SimulationInputs.ThrottleInput_XAxis = ThrottleAxisX.GetInterpilatedValue(deltaTime, SimulationInputs.ThrottleInput_XAxis, RawThrottleInputX);
-	SimulationInputs.ThrottleInput_YAxis = ThrottleAxisY.GetInterpilatedValue(deltaTime, SimulationInputs.ThrottleInput_YAxis, RawThrottleInputY);
-	SimulationInputs.ThrottleInput_ZAxis = ThrottleAxisZ.GetInterpilatedValue(deltaTime, SimulationInputs.ThrottleInput_ZAxis, RawThrottleInputZ);
+	// SimulationInputs.ThrottleInput_XAxis = ThrottleAxisX.GetInterpilatedValue(deltaTime, SimulationInputs.ThrottleInput_XAxis, RawThrottleInputX, this);
+	// SimulationInputs.ThrottleInput_YAxis = ThrottleAxisY.GetInterpilatedValue(deltaTime, SimulationInputs.ThrottleInput_YAxis, RawThrottleInputY, this);
+	// SimulationInputs.ThrottleInput_ZAxis = ThrottleAxisZ.GetInterpilatedValue(deltaTime, SimulationInputs.ThrottleInput_ZAxis, RawThrottleInputZ, this);
 
+	ThrottleAxisZ.State = this->GetCurrentVehicleState();
 	
-	if (GetOwner() && GetOwner()->HasAuthority())
-	{
-		UE_LOG(LogTemp, Log, TEXT("CurrentThrottleValue = %s, : %s"), *FString::SanitizeFloat(SimulationInputs.ThrottleInput_ZAxis) , TEXT("Server"));
-	} else
-	{
-		UE_LOG(LogTemp, Log, TEXT("CurrentThrottleValue = %s, : %s"), *FString::SanitizeFloat(SimulationInputs.ThrottleInput_ZAxis) , TEXT("Client"));
-	}
+	// SimulationInputs.ThrottleInput_XAxis = ThrottleAxisX.GetInterpilatedValue(deltaTime, SimulationInputs.ThrottleInput_XAxis, SimulationInputs.RawThrottleInputX);
+	// SimulationInputs.ThrottleInput_YAxis = ThrottleAxisY.GetInterpilatedValue(deltaTime, SimulationInputs.ThrottleInput_YAxis, SimulationInputs.RawThrottleInputY);
+	SimulationInputs.ThrottleInput_ZAxis = ThrottleAxisZ.GetInterpilatedValue(deltaTime, SimulationInputs.RawThrottleInputZ);
 	
-	SimulationInputs.PitchInput = PitchInput.GetInterpilatedValue(deltaTime, SimulationInputs.PitchInput, RawPitchInput);
-	SimulationInputs.RollInput = RollInput.GetInterpilatedValue(deltaTime, SimulationInputs.RollInput, RawRollInput);
-	SimulationInputs.YawInput = YawInput.GetInterpilatedValue(deltaTime, SimulationInputs.YawInput, RawYawInput);
+	// if (GetOwner() && GetOwner()->HasAuthority())
+	// {
+	// 	UE_LOG(LogTemp, Log, TEXT("CurrentThrottleValue = %s, RawThrottleValue : %s, %s"), *FString::SanitizeFloat(SimulationInputs.ThrottleInput_ZAxis) , *FString::SanitizeFloat(SimulationInputs.ThrottleInput_ZAxis), TEXT("Server"));
+	// } else
+	// {
+	// 	UE_LOG(LogTemp, Log, TEXT("CurrentThrottleValue = %s, RawThrottleValue : %s, %s"), *FString::SanitizeFloat(SimulationInputs.ThrottleInput_ZAxis) , *FString::SanitizeFloat(SimulationInputs.ThrottleInput_ZAxis), TEXT("Client"));
+	// }
+	
+	// SimulationInputs.PitchInput = PitchInput.GetInterpilatedValue(deltaTime, SimulationInputs.PitchInput, RawPitchInput, this);
+	// SimulationInputs.RollInput = RollInput.GetInterpilatedValue(deltaTime, SimulationInputs.RollInput, RawRollInput, this);
+	// SimulationInputs.YawInput = YawInput.GetInterpilatedValue(deltaTime, SimulationInputs.YawInput, RawYawInput, this);
 
-	ClearRawInputs();
-
+	YawInput.State = this->GetCurrentVehicleState();
+	
+	// SimulationInputs.PitchInput = PitchInput.GetInterpilatedValue(deltaTime, SimulationInputs.PitchInput, SimulationInputs.RawPitchInput);
+	// SimulationInputs.RollInput = RollInput.GetInterpilatedValue(deltaTime, SimulationInputs.RollInput, SimulationInputs.RawRollInput);
+	// SimulationInputs.YawInput = YawInput.GetInterpilatedValue(deltaTime, RawYawInput);
+	SimulationInputs.YawInput = YawInput.GetYawValue(deltaTime, RawYawInput);
+	
 	SimulationState.CurrentThrottleValueX = ThrottleAxisX.ThrottleControl.GetCurrentThrottleValue();
 	SimulationState.CurrentThrottleValueY = ThrottleAxisY.ThrottleControl.GetCurrentThrottleValue();
 	SimulationState.CurrentThrottleValueZ = ThrottleAxisZ.ThrottleControl.GetCurrentThrottleValue();
+
+	ClearRawInputs();
 }
 
 void UVehicleSimulationComponent::ClearRawInputs()
 {
-	RawThrottleInputX = 0.f;
-	RawThrottleInputY = 0.f;
-	RawThrottleInputZ = 0.f;
+	// RawThrottleInputX = 0.f;
+	// RawThrottleInputY = 0.f;
+	// RawThrottleInputZ = 0.f;
 
-	RawPitchInput = 0.f;
-	RawRollInput = 0.f;
+
+	// TODO по неизветсной причине делает значение на сервере всегда нулевым
+	SimulationInputs.RawThrottleInputX = 0.f;
+	SimulationInputs.RawThrottleInputY = 0.f;
+	SimulationInputs.RawThrottleInputZ = 0.f;
+		
+	// SimulationInputs.RawPitchInput = 0.f;
+	// SimulationInputs.RawRollInput = 0.f;
+	// SimulationInputs.RawYawInput = 0.f;
+	
+	// RawPitchInput = 0.f;
+	// RawRollInput = 0.f;
 	RawYawInput = 0.f;
 }
 
@@ -188,12 +210,12 @@ void UVehicleSimulationComponent::ApplyTorque(double deltaTime, Chaos::FRigidBod
 		
 		if (SimpleRotationControl.bEnableRotationControl)
 		{
-			totalTorque -= SimpleRotationControl.TorqueInputScaling.RollInput.GetTorque(SimulationInputs.RollInput, SimulationState.Forward.Axis);
-			totalTorque += SimpleRotationControl.TorqueInputScaling.PitchInput.GetTorque(SimulationInputs.PitchInput, SimulationState.Right.Axis);
+			// totalTorque -= SimpleRotationControl.TorqueInputScaling.RollInput.GetTorque(SimulationInputs.RollInput, SimulationState.Forward.Axis);
+			// totalTorque += SimpleRotationControl.TorqueInputScaling.PitchInput.GetTorque(SimulationInputs.PitchInput, SimulationState.Right.Axis);
 			totalTorque += SimpleRotationControl.TorqueInputScaling.YawInput.GetTorque(SimulationInputs.YawInput, SimulationState.Up.Axis);
-			totalTorque += SimpleRotationControl.TorqueInputScaling.YawFromRollInput.GetTorque(SimulationInputs.RollInput, SimulationState.Up.Axis);
+			// totalTorque += SimpleRotationControl.TorqueInputScaling.YawFromRollInput.GetTorque(SimulationInputs.RollInput, SimulationState.Up.Axis);
 			
-			SimpleRotationControl.TorqueInputScaling.TorqueDamping.AddDampingEffect(SimulationState.WorldAngularVelocity, totalTorque);
+			// SimpleRotationControl.TorqueInputScaling.TorqueDamping.AddDampingEffect(SimulationState.WorldAngularVelocity, totalTorque);
 		}
 		
 		AddTorqueInRadians(totalTorque, true);
@@ -205,13 +227,16 @@ void UVehicleSimulationComponent::SetThrottleInput(double value, EThrottleInputA
 	switch (axis)
 	{
 	case TIA_Throttle_X:
-		RawThrottleInputX = FMath::Clamp(value, -1.f, 1.f);
+		// RawThrottleInputX = FMath::Clamp(value, -1.f, 1.f);
+			SimulationInputs.RawThrottleInputX =  FMath::Clamp(value, -1.f, 1.f);;
 		break;
 	case TIA_Throttle_Y:
-		RawThrottleInputY = FMath::Clamp(value, -1.f, 1.f);
+		// RawThrottleInputY = FMath::Clamp(value, -1.f, 1.f);
+			SimulationInputs.RawThrottleInputY =  FMath::Clamp(value, -1.f, 1.f);;
 		break;
 	case TIA_Throttle_Z:
-		RawThrottleInputZ = FMath::Clamp(value, -1.f, 1.f);
+		// RawThrottleInputZ = FMath::Clamp(value, -1.f, 1.f);
+		SimulationInputs.RawThrottleInputZ = FMath::Clamp(value, -1.f, 1.f);
 		break;
 	default:
 		ErrorMessage("SetThrottleInput: No Input to map to", FColor::Red, 2.f);
@@ -222,16 +247,19 @@ void UVehicleSimulationComponent::SetThrottleInput(double value, EThrottleInputA
 void UVehicleSimulationComponent::SetYawInput(double value)
 {
 	RawYawInput = FMath::Clamp(value, -1.f, 1.f);
+	// SimulationInputs.RawYawInput = FMath::Clamp(value, -1.f, 1.f);;
 }
 
 void UVehicleSimulationComponent::SetPitchInput(double value)
 {
-	RawPitchInput = FMath::Clamp(value, -1.f, 1.f);
+	// RawPitchInput = FMath::Clamp(value, -1.f, 1.f);
+	SimulationInputs.RawPitchInput = FMath::Clamp(value, -1.f, 1.f);;
 }
 
 void UVehicleSimulationComponent::SetRollInput(double value)
 {
-	RawRollInput = FMath::Clamp(value, -1.f, 1.f);
+	// RawRollInput = FMath::Clamp(value, -1.f, 1.f);
+	SimulationInputs.RawRollInput = FMath::Clamp(value, -1.f, 1.f);;
 }
 
 void UVehicleSimulationComponent::ResetSimulation()

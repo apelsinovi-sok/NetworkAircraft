@@ -1,5 +1,3 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #pragma once
 
 #include "CoreMinimal.h"
@@ -7,9 +5,6 @@
 
 #include "RollingBallPhysicsMovementTraits.generated.h"
 
-
-
-/** Ball inputs from the player controller */
 USTRUCT()
 struct NETWORKAIRCRAFT_API FBallInputs
 {
@@ -20,79 +15,121 @@ struct NETWORKAIRCRAFT_API FBallInputs
 		, ThrottleInput(0.f)
 		, TravelDirection(FRotator::ZeroRotator)
 		, JumpCount(0)
+		, ThrottleUp(0)
+		, TargetAltitude(1000.f)
+		, AltitudeVersion(0)
+		, PidEnableActiveStatus(0)
 	{}
 
-	// Steering output to physics system. Range -1...1
 	UPROPERTY()
 	float SteeringInput;
 
-	// Accelerator output to physics system. Range -1...1
 	UPROPERTY()
 	float ThrottleInput;
 
-	// Desired direction
 	UPROPERTY()
 	FRotator TravelDirection;
 
-	/** Counter for user jumps */
 	UPROPERTY()
 	int32 JumpCount;
+
+	UPROPERTY()
+	float ThrottleUp;
+
+	UPROPERTY()
+	float TargetAltitude;
+
+	UPROPERTY()
+	int32 AltitudeVersion;
+
+	UPROPERTY()
+	int32 PidEnableActiveStatus;
 };
 
-/** Ball state data that will be used in the state history to rewind the simulation at some point in time */
+USTRUCT()
+struct NETWORKAIRCRAFT_API FBallState
+{
+	GENERATED_BODY()
+
+	FBallState()
+		: BallForwardAxis(FVector::ZeroVector)
+		, BallRightAxis(FVector::ZeroVector)
+		, ThrottleUp(0)
+		, WorldVelocity(FVector::ZeroVector)
+		, BallUpAxis(FVector::ZeroVector)
+		, CurrentAltitude(0)
+		, ErrorSum(0)
+		, PidThrottle(0)
+	{}
+
+	UPROPERTY()
+	FVector BallForwardAxis;
+
+	UPROPERTY()
+	FVector BallRightAxis;
+
+	UPROPERTY()
+	float ThrottleUp;
+
+	UPROPERTY()
+	FVector WorldVelocity;
+
+	UPROPERTY()
+	FVector BallUpAxis;
+
+	UPROPERTY()
+	float CurrentAltitude;
+
+	// Добавлено: состояние PID для корректной рессимуляции
+	UPROPERTY()
+	float ErrorSum;
+
+	// Добавлено: текущий выход PID (сохраняем, чтобы при rewind не прыгал)
+	UPROPERTY()
+	float PidThrottle;
+};
+
 USTRUCT()
 struct NETWORKAIRCRAFT_API FNetworkBallStates : public FNetworkPhysicsData
 {
 	GENERATED_BODY()
 
-	/**  Serialize data function that will be used to transfer the struct across the network */
+	UPROPERTY()
+	FBallState BallState;
+
+	virtual void ApplyData(UActorComponent* NetworkComponent) const override;
+	virtual void BuildData(const UActorComponent* NetworkComponent) override;
 	bool NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess);
+	virtual void InterpolateData(const FNetworkPhysicsData& MinData, const FNetworkPhysicsData& MaxData) override;
+	virtual void MergeData(const FNetworkPhysicsData& FromData) override;
 };
 
 template<>
 struct TStructOpsTypeTraits<FNetworkBallStates> : public TStructOpsTypeTraitsBase2<FNetworkBallStates>
 {
-	enum
-	{
-		WithNetSerializer = true,
-	};
+	enum { WithNetSerializer = true, };
 };
 
-/** Ball Inputs data that will be used in the inputs history to be applied while simulating */
 USTRUCT()
 struct NETWORKAIRCRAFT_API FNetworkBallInputs : public FNetworkPhysicsData
 {
 	GENERATED_BODY()
 
-	/** List of incoming control inputs coming from the local client */
 	UPROPERTY()
 	FBallInputs BallInputs;
 
-	/**  Apply the data onto the network physics component */
 	virtual void ApplyData(UActorComponent* NetworkComponent) const override;
-
-	/**  Build the data from the network physics component */
 	virtual void BuildData(const UActorComponent* NetworkComponent) override;
-
-	/**  Serialize data function that will be used to transfer the struct across the network */
 	bool NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess);
-
-	/** Interpolate the data in between two inputs data */
 	virtual void InterpolateData(const FNetworkPhysicsData& MinData, const FNetworkPhysicsData& MaxData) override;
-
-	/** Merge data into this input */
 	virtual void MergeData(const FNetworkPhysicsData& FromData) override;
 };
 
 template<>
 struct TStructOpsTypeTraits<FNetworkBallInputs> : public TStructOpsTypeTraitsBase2<FNetworkBallInputs>
 {
-	enum
-	{
-		WithNetSerializer = true,
-	};
+	enum { WithNetSerializer = true, };
 };
-
 
 struct NETWORKAIRCRAFT_API FRollingBallPhysicsMovementTraits
 {
